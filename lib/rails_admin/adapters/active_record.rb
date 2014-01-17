@@ -65,7 +65,7 @@ module RailsAdmin
             :pretty_name => property.name.to_s.tr('_', ' ').capitalize,
             :length => property.limit,
             :nullable? => property.null,
-            :serial? => property.primary,
+            :serial? => property.primary
           }.merge(type_lookup(property))
         end
       end
@@ -101,7 +101,7 @@ module RailsAdmin
 
         def add(field, value, operator)
           field.searchable_columns.flatten.each do |column_infos|
-            statement, value1, value2 = StatementBuilder.new(column_infos[:column], column_infos[:type], value, operator).to_statement
+            statement, value1, value2 = StatementBuilder.new(column_infos[:column], column_infos[:type], value, operator, column_infos[:array?]).to_statement
             @statements << statement if statement.present?
             @values << value1 unless value1.nil?
             @values << value2 unless value2.nil?
@@ -145,6 +145,8 @@ module RailsAdmin
       def type_lookup(property)
         if model.serialized_attributes[property.name.to_s]
           {:type => :serialized}
+        elsif property.respond_to?(:array) && property.array
+          {:type => property.type, :array? => true}
         else
           {:type => property.type}
         end
@@ -286,7 +288,12 @@ module RailsAdmin
           else
             return
           end
-          ["(LOWER(#{@column}) #{like_operator} ?)", @value]
+
+          if @is_array
+            ["(LOWER(array_to_string(#{@column}, ' ')) #{like_operator} ?)", @value]
+          else
+            ["(LOWER(#{@column}) #{like_operator} ?)", @value]
+          end
         end
 
         def build_statement_for_enum

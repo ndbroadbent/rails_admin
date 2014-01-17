@@ -73,7 +73,7 @@ module RailsAdmin
         register_instance_option :searchable_columns do
           @searchable_columns ||= case self.searchable
           when true
-            [{ :column => "#{self.abstract_model.table_name}.#{self.name}", :type => self.type }]
+            [{ :column => "#{self.abstract_model.table_name}.#{self.name}", :type => self.type, :array? => self.properties[:array?] }]
           when false
             []
           when :all # valid only for associations
@@ -81,6 +81,7 @@ module RailsAdmin
             self.associated_model_config.list.fields.map { |f| { :column => "#{table_name}.#{f.name}", :type => f.type } }
           else
             [self.searchable].flatten.map do |f|
+              array = false
               if f.is_a?(String) && f.include?('.')                            #  table_name.column
                 table_name, column = f.split '.'
                 type = nil
@@ -89,16 +90,20 @@ module RailsAdmin
                 table_name = am && am.table_name || f.keys.first
                 column = f.values.first
                 property = am && am.properties.find{ |p| p[:name] == f.values.first.to_sym }
+                array = true if property && property[:array?]
                 type = property && property[:type]
               else                                                             #  <attribute|column>
                 am = (self.association? ? self.associated_model_config.abstract_model : self.abstract_model)
                 table_name = am.table_name
                 column = f
                 property = am.properties.find{ |p| p[:name] == f.to_sym }
+                array = true if property && property[:array?]
                 type = property && property[:type]
               end
 
-              { :column => "#{table_name}.#{column}", :type => (type || :string) }
+              column_data = { :column => "#{table_name}.#{column}", :type => (type || :string) }
+              column_data[:array?] = true if array
+              column_data
             end
           end
         end

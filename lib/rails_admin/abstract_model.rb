@@ -110,11 +110,12 @@ module RailsAdmin
     end
 
     class StatementBuilder
-      def initialize(column, type, value, operator)
+      def initialize(column, type, value, operator, is_array = false)
         @column = column
         @type = type
         @value = value
         @operator = operator
+        @is_array = is_array
       end
 
       def to_statement
